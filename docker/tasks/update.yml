@@ -1,0 +1,43 @@
+---
+- name: Prepare folder for docker compose
+  file:
+    path: "/home/{{ deploy_user }}/{{ project_folder }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0755'
+
+- name: Find old image
+  raw: "cd /home/{{ deploy_user }}/{{ project_folder }}/ && docker compose images | grep {{ project_folder }}-app | awk '{print $4}'"
+  register: old_image
+
+- debug:
+    var: old_image.stdout | trim
+
+- name: Template files
+  template: 
+    src: "../../{{ item }}"
+    dest: "/home/{{ deploy_user }}/{{ project_folder }}/{{ item.split('.j2')[0] }}"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0664'
+  loop:
+    "{{ templete_list }}"
+
+- name: docker login
+  raw: docker login profmalina.cr.cloud.ru -u "{{ dockeruser }}" -p "{{ dockerpasswd }}"
+
+- name: Create and start services
+  community.docker.docker_compose_v2:
+    project_src: "/home/{{ deploy_user }}/{{ project_folder }}"
+    pull: missing
+  register: output
+
+- name: Show results
+  debug:
+    var: output
+
+- name: Prune images
+  raw: "docker rmi {{ old_image.stdout | trim }}"
+  ignore_errors: true
+  no_log: True
