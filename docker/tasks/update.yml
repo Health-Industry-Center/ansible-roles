@@ -14,6 +14,31 @@
 - debug:
     var: old_image.stdout | trim
 
+- name: Check that the .env.example exists
+  stat:
+    path: "../.env.example"
+  delegate_to: localhost  
+  register: check_env_example
+
+- name: Load data
+  slurp:
+    src: "../.env.example"
+  delegate_to: localhost
+  register: slurped_user_data
+  when: check_env_example.stat.exists
+
+- set_fact:
+    msg: "{{ slurped_user_data.content | b64decode | regex_findall('(^[A-Z_]+)=.*$', '\\1') }}"
+  register: paramlist
+  when: check_env_example.stat.exists
+
+- name: Template template env
+  template: 
+    src: .env.j2
+    dest: .env.j2
+  delegate_to: localhost
+  when: check_env_example.stat.exists 
+
 - name: Template files
   template: 
     src: "../../{{ item }}"
