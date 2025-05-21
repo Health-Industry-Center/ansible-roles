@@ -1,0 +1,12 @@
+---
+# - name: delete image
+#   raw: "docker rmi profmalina.cr.cloud.ru/ds-health-industry-center/cpf_clissifier_pipeline:latest"
+#   ignore_errors: true
+
+- name: Prune images
+  raw: "docker image prune -f"
+  ignore_errors: true
+
+- name: prune builder
+  raw: "docker builder prune -f"
+  ignore_errors: true
